@@ -1,9 +1,10 @@
 const fetch = require("node-fetch");
 const path = require("path");
 const { createCanvas, loadImage, registerFont } = require("canvas");
+const { charData } = require('./character-data');
 
 function absolute(relativePath) {
-    return path.join(__dirname, relativePath);
+  return path.join(__dirname, relativePath);
 }
 
 registerFont(absolute('SourceSansPro-Regular.ttf'), { family: 'Source Sans Pro', style: 'Regular' });
@@ -79,6 +80,20 @@ const infoTextSmallStartY = rectStartRow3Y + infoTextStartSpacing;
 const infoTextBigStartY = infoTextSmallStartY + 25;
 const infoTextSpacing = 50;
 
+const equipImgSize = 41;
+const equipSpacing = equipImgSize + equipImgSize;
+const equipY = 41;
+
+const equipLeftImageStartX = 15;
+const equipRightImageStartX = 890 - equipImgSize - 15;
+
+const equipIlvlY = equipY + 17;
+const equipLeftTextStartX = equipLeftImageStartX + 45;
+const equipRightTextStartX = equipRightImageStartX - 5;
+
+const equipItemNameY = equipIlvlY + 17;
+const equpMirageNameY = equipItemNameY + 17;
+
 class CardCreator {
   /**
    * Creates a new card creator.
@@ -125,6 +140,8 @@ class CardCreator {
     this.copyrightYear = d.getFullYear();
 
     this.bgImage = await loadImage(absolute("./chara_top.png"));
+    this.bgImageCenter = await loadImage(absolute("./chara_center_c.png"))
+
 
     this.imgMinion = await loadImage(absolute("./minion.png"));
     this.imgMount = await loadImage(absolute("./mount.png"));
@@ -303,7 +320,7 @@ class CardCreator {
     const characterInfoUrl = `https://xivapi.com/character/${charaId}?extended=1&data=FC,mimo`;
     const response = await fetch(characterInfoUrl);
     if (!response.ok) {
-      // Retry once if the request fails
+    // Retry once if the request fails
       response = await fetch(characterInfoUrl);
     }
 
@@ -311,7 +328,7 @@ class CardCreator {
 
     const canvasSize = this.canvasSize;
     const canvas = createCanvas(canvasSize.width, canvasSize.height);
-    const ctx = canvas.getContext("2d");  
+    const ctx = canvas.getContext("2d");
 
     const portrait = await loadImage(data.Character.Portrait);
 
@@ -349,7 +366,7 @@ class CardCreator {
     ctx.textAlign = "center";
     ctx.font = med;
     ctx.fillStyle = primary;
-    
+
     if (data.Character.Title.Name !== undefined)
       ctx.fillText(data.Character.Title.Name, 450, 40);
 
@@ -367,8 +384,8 @@ class CardCreator {
     if (data.Character.FreeCompanyName != null) {
       ctx.fillText("Free Company", 480, infoTextSmallStartY + infoTextSpacing * 3);
     }
-      ctx.fillText("Elemental Level", 480, 425);
-      ctx.fillText("Resistance Rank", 480, 475);
+    ctx.fillText("Elemental Level", 480, 425);
+    ctx.fillText("Resistance Rank", 480, 475);
 
 
     ctx.fillStyle = grey;
@@ -440,7 +457,7 @@ class CardCreator {
     if (data.Mounts !== null) {
       mountsPct = Math.ceil((data.Mounts.length / this.countMount) * 100);
     }
-    
+
     var minionsPct = '0';
     if (data.Minions !== null) {
       minionsPct = Math.ceil((data.Minions.length / this.countMinion) * 100);
@@ -543,7 +560,7 @@ class CardCreator {
 
     // Healers
     if (data.Character.ClassJobs[8].UnlockedState.ID == 24) {
-      ctx.drawImage(this.imgWhitemage, 630, jobsRowIcon1Y, 30, 30);  
+      ctx.drawImage(this.imgWhitemage, 630, jobsRowIcon1Y, 30, 30);
     } else {
       ctx.drawImage(this.imgConjurer, 630, jobsRowIcon1Y, 30, 30);
     }
@@ -613,9 +630,9 @@ class CardCreator {
 
     // Caster
     if (data.Character.ClassJobs[14].UnlockedState.ID == 25) {
-      ctx.drawImage(this.imgBlackmage, 630, jobsRowIcon2Y, 30, 30); 
+      ctx.drawImage(this.imgBlackmage, 630, jobsRowIcon2Y, 30, 30);
     } else {
-      ctx.drawImage(this.imgThaumaturge, 630, jobsRowIcon2Y, 30, 30); 
+      ctx.drawImage(this.imgThaumaturge, 630, jobsRowIcon2Y, 30, 30);
     }
     ctx.fillText(data.Character.ClassJobs[14].Level, cJobsRowTextX, jobsRowText2Y);
     cJobsRowTextX += jobsRowTextSize;
@@ -641,6 +658,258 @@ class CardCreator {
     ctx.font = copyright;
 
     ctx.fillText(`© 2010 - ${this.copyrightYear} SQUARE ENIX CO., LTD. All Rights Reserved`, rectStartX, 720 - 5);
+
+    return canvas.toBuffer();
+  }
+
+  async createEquipmentCard(charaId) {
+    const characterInfoUrl = `https://xivapi.com/character/${charaId}?extended=1`;
+    //const response = await fetch(characterInfoUrl);
+    //if (!response.ok) {
+    // Retry once if the request fails
+    //  response = await fetch(characterInfoUrl);
+   // }
+
+   // const data = await response.json();
+   const data = charData;
+
+    const canvasSize = this.canvasSize;
+    const canvas = createCanvas(canvasSize.width, canvasSize.height);
+    const ctx = canvas.getContext("2d");
+
+    const portrait = await loadImage(data.Character.Portrait);
+    ctx.drawImage(this.bgImageCenter, 0, 0, canvasSize.width, canvasSize.height + 2);
+    ctx.drawImage(
+      portrait,
+      canvasSize.width / 2 - 513 / 2,
+      canvasSize.height / 2 - 700 / 2,
+      513,
+      700);
+
+    // Black overlay
+    ctx.strokeStyle = white;
+    ctx.fillStyle = black;
+    ctx.beginPath();
+    ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+
+    // Draw gear
+    var gear = data.Character.GearSet.Gear;
+    ctx.textAlign = "left";
+    if (gear.MainHand) {
+      var icon = await loadImage('https://xivapi.com/' + gear.MainHand.Item.Icon);
+      ctx.drawImage(icon, equipLeftImageStartX, equipY, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.MainHand.Item.LevelItem, equipLeftTextStartX, equipIlvlY);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.MainHand.Item.Name, equipLeftTextStartX, equipItemNameY);
+      if (gear.MainHand.Mirage.Name)
+        ctx.fillText(gear.MainHand.Mirage.Name, equipLeftTextStartX, equpMirageNameY);
+    }
+
+    if (gear.Head) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Head.Item.Icon);
+      ctx.drawImage(icon, equipLeftImageStartX, equipY + equipSpacing, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Head.Item.LevelItem, equipLeftTextStartX, equipIlvlY + equipSpacing);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Head.Item.Name, equipLeftTextStartX, equipItemNameY + equipSpacing);
+      if (gear.Head.Mirage)
+        ctx.fillText(gear.Head.Mirage.Name, equipLeftTextStartX, equpMirageNameY + equipSpacing);
+    }
+
+    if (gear.Body) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Body.Item.Icon);
+      ctx.drawImage(icon, equipLeftImageStartX, equipY + equipSpacing * 2, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Body.Item.LevelItem, equipLeftTextStartX, equipIlvlY + equipSpacing * 2);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Body.Item.Name, equipLeftTextStartX, equipItemNameY + equipSpacing * 2);
+      if (gear.Body.Mirage)
+        ctx.fillText(gear.Body.Mirage.Name, equipLeftTextStartX, equpMirageNameY + equipSpacing * 2);
+    }
+
+    if (gear.Hands) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Hands.Item.Icon);
+      ctx.drawImage(icon, equipLeftImageStartX, equipY + equipSpacing * 3, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Hands.Item.LevelItem, equipLeftTextStartX, equipIlvlY + equipSpacing * 3);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Hands.Item.Name, equipLeftTextStartX, equipItemNameY + equipSpacing * 3);
+      if (gear.Hands.Mirage)
+        ctx.fillText(gear.Hands.Mirage.Name, equipLeftTextStartX, equpMirageNameY + equipSpacing * 3);
+    }
+
+    if (gear.Waist) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Waist.Item.Icon);
+      ctx.drawImage(icon, equipLeftImageStartX, equipY + equipSpacing * 4, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Waist.Item.LevelItem, equipLeftTextStartX, equipIlvlY + equipSpacing * 4);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Waist.Item.Name, equipLeftTextStartX, equipItemNameY + equipSpacing * 4);
+      if (gear.Waist.Mirage)
+        ctx.fillText(gear.Waist.Mirage.Name, equipLeftTextStartX, equpMirageNameY + equipSpacing * 4);
+    }
+
+    if (gear.Legs) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Legs.Item.Icon);
+      ctx.drawImage(icon, equipLeftImageStartX, equipY + equipSpacing * 5, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Legs.Item.LevelItem, equipLeftTextStartX, equipIlvlY + equipSpacing * 5);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Legs.Item.Name, equipLeftTextStartX, equipItemNameY + equipSpacing * 5);
+      if (gear.Legs.Mirage)
+        ctx.fillText(gear.Legs.Mirage.Name, equipLeftTextStartX, equpMirageNameY + equipSpacing * 5);
+    }
+
+    if (gear.Feet) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Feet.Item.Icon);
+      ctx.drawImage(icon, equipLeftImageStartX, equipY + equipSpacing * 6, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Feet.Item.LevelItem, equipLeftTextStartX, equipIlvlY + equipSpacing * 6);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Feet.Item.Name, equipLeftTextStartX, equipItemNameY + equipSpacing * 6);
+      if (gear.Feet.Mirage)
+        ctx.fillText(gear.Feet.Mirage.Name, equipLeftTextStartX, equpMirageNameY + equipSpacing * 6);
+    }
+
+    ctx.textAlign = "right";
+    if (gear.OffHand) {
+      var icon = await loadImage('https://xivapi.com/' + gear.OffHand.Item.Icon);
+      ctx.drawImage(icon, equipRightImageStartX, equipY, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.OffHand.Item.LevelItem, equipRightTextStartX, equipIlvlY);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.OffHand.Item.Name, equipRightTextStartX, equipItemNameY);
+      if (gear.OffHand.Mirage)
+        ctx.fillText(gear.OffHand.Mirage.Name, equipRightTextStartX, equpMirageNameY);
+    }
+
+    if (gear.Earrings) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Earrings.Item.Icon);
+      ctx.drawImage(icon, equipRightImageStartX, equipY + equipSpacing, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Earrings.Item.LevelItem, equipRightTextStartX, equipIlvlY + equipSpacing);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Earrings.Item.Name, equipRightTextStartX, equipItemNameY + equipSpacing);
+      if (gear.Earrings.Mirage)
+        ctx.fillText(gear.Earrings.Mirage.Name, equipRightTextStartX, equpMirageNameY + equipSpacing);
+    }
+
+    if (gear.Necklace) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Necklace.Item.Icon);
+      ctx.drawImage(icon, equipRightImageStartX, equipY + equipSpacing * 2, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Necklace.Item.LevelItem, equipRightTextStartX, equipIlvlY + equipSpacing * 2);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Necklace.Item.Name, equipRightTextStartX, equipItemNameY + equipSpacing * 2);
+      if (gear.Necklace.Mirage)
+        ctx.fillText(gear.Necklace.Mirage.Name, equipRightTextStartX, equpMirageNameY + equipSpacing * 2);
+    }
+
+    if (gear.Bracelets) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Bracelets.Item.Icon);
+      ctx.drawImage(icon, equipRightImageStartX, equipY + equipSpacing * 3, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Bracelets.Item.LevelItem, equipRightTextStartX, equipIlvlY + equipSpacing * 3);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Bracelets.Item.Name, equipRightTextStartX, equipItemNameY + equipSpacing * 3);
+      if (gear.Bracelets.Mirage)
+        ctx.fillText(gear.Bracelets.Mirage.Name, equipRightTextStartX, equpMirageNameY + equipSpacing * 3);
+    }
+
+    if (gear.Ring1) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Ring1.Item.Icon);
+      ctx.drawImage(icon, equipRightImageStartX, equipY + equipSpacing * 4, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Ring1.Item.LevelItem, equipRightTextStartX, equipIlvlY + equipSpacing * 4);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Ring1.Item.Name, equipRightTextStartX, equipItemNameY + equipSpacing * 4);
+      if (gear.Ring1.Mirage)
+        ctx.fillText(gear.Ring1.Mirage.Name, equipRightTextStartX, equpMirageNameY + equipSpacing * 4);
+    }
+
+    if (gear.Ring2) {
+      var icon = await loadImage('https://xivapi.com/' + gear.Ring2.Item.Icon);
+      ctx.drawImage(icon, equipRightImageStartX, equipY + equipSpacing * 5, equipImgSize, equipImgSize);
+
+      ctx.font = smed;
+      ctx.fillStyle = primary;
+      ctx.fillText(gear.Ring2.Item.LevelItem, equipRightTextStartX, equipIlvlY + equipSpacing * 5);
+
+      ctx.font = small;
+      ctx.fillStyle = white;
+      ctx.fillText(gear.Ring2.Item.Name, equipRightTextStartX, equipItemNameY + equipSpacing * 5);
+      if (gear.Ring2.Mirage)
+        ctx.fillText(gear.Ring2.Mirage.Name, equipRightTextStartX, equpMirageNameY + equipSpacing * 5);
+    }
+
+
+    ctx.strokeStyle = white;
+    ctx.fillStyle = black;
+    ctx.beginPath();
+    ctx.fillRect(0, canvasSize.height - 120, canvasSize.width, 120);
+
+    ctx.textAlign = "center";
+    ctx.font = med;
+    ctx.fillStyle = primary;
+
+    ctx.fillText(data.Character.Name, 450, canvasSize.height - 70);
+
+    ctx.font = small;
+    ctx.fillText(`${data.Character.Server} (${data.Character.DC})`, 450, canvasSize.height - 50);
+
+    var ilvl = this.getItemLevel(data.Character.GearSet.Gear);
+    ctx.drawImage(this.imgShadow, 415, canvasSize.height - 49, 170, 90);
+    ctx.drawImage(this.imgIlvl, 415, canvasSize.height - 49, 24, 27);
+    ctx.fillText(ilvl, 460, canvasSize.height - 30);
 
     return canvas.toBuffer();
   }
