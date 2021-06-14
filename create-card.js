@@ -705,7 +705,7 @@ class CardCreator {
       ctx.font = small;
       ctx.fillStyle = white;
       ctx.fillText(gear.MainHand.Item.Name, equipLeftTextStartX, equipItemNameY);
-      if (gear.MainHand.Mirage.Name)
+      if (gear.MainHand.Mirage)
         ctx.fillText(gear.MainHand.Mirage.Name, equipLeftTextStartX, equpMirageNameY);
     }
 
