@@ -1,7 +1,9 @@
 const fetch = require("node-fetch");
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 5000;
+const config = require('config');
+
+const port = process.env.PORT || config.get('app.port');
 
 const { CardCreator } = require('./create-card');
 
@@ -17,7 +19,7 @@ var diskCache = cacheManager.caching({
     options: {
         reviveBuffers: true,
         binaryAsStream: false,
-        ttl: 60 /* seconds */,
+        ttl: config.get('app.cachettl') /* seconds */,
         maxsize: 1000 * 1000 * 1000 /* max size in bytes on disk */,
         path: 'diskcache',
         preventfill: true
@@ -27,7 +29,7 @@ var diskCache = cacheManager.caching({
 async function getCharIdByName(world, name, retries = 1) {
     if (retries === -1) return undefined;
 
-    const response = await fetch(`https://xivapi.com/character/search?name=${name}&server=${world}`);
+    const response = await fetch(`https://xivapi.com/character/search?name=${name}&server=${world}&private_key=${config.get('xivapi.token')}`);
     const data = await response.json();
 
     if (data.Results[0] === undefined)
@@ -38,7 +40,7 @@ async function getCharIdByName(world, name, retries = 1) {
 
 app.get('/prepare/id/:charaId', async (req, res) => {
     var cacheKey = `img:${req.params.charaId}`;
-    var ttl = 60; // 4 hours
+    var ttl = config.get('app.cachettl'); 
 
     diskCache.wrap(cacheKey,
         // called if the cache misses in order to generate the value to cache
@@ -63,9 +65,9 @@ app.get('/prepare/id/:charaId', async (req, res) => {
     );
 })
 
-app.get('/prepare/equipment/id/:charaId', async (req, res) => {
+app.get('/prepare/equipments/id/:charaId', async (req, res) => {
     var cacheKey = `img:eq:${req.params.charaId}`;
-    var ttl = 60; // 4 hours
+    var ttl = config.get('app.cachettl');
 
     diskCache.wrap(cacheKey,
         // called if the cache misses in order to generate the value to cache
@@ -85,7 +87,7 @@ app.get('/prepare/equipment/id/:charaId', async (req, res) => {
                 return;
             }
 
-            res.status(200).send({status: "ok", url: `/characters/equipment/id/${req.params.charaId}.png`});
+            res.status(200).send({status: "ok", url: `/characters/equipments/id/${req.params.charaId}.png`});
         }
     );
 })
@@ -101,7 +103,7 @@ app.get('/prepare/name/:world/:charName', async (req, res) => {
     res.redirect(`/prepare/id/${id}`);
 })
 
-app.get('/prepare/equipment/name/:world/:charName', async (req, res) => {
+app.get('/prepare/equipments/name/:world/:charName', async (req, res) => {
     var id = await getCharIdByName(req.params.world, req.params.charName);
 
     if (id === undefined) {
@@ -109,12 +111,12 @@ app.get('/prepare/equipment/name/:world/:charName', async (req, res) => {
         return;
     }
 
-    res.redirect(`/prepare/equipment/id/${id}`);
+    res.redirect(`/prepare/equipments/id/${id}`);
 })
 
 app.get('/characters/id/:charaId.png', async (req, res) => {
     var cacheKey = `img:${req.params.charaId}`;
-    var ttl = 60; // 4 hours
+    var ttl = config.get('app.cachettl');
 
     diskCache.wrap(cacheKey,
         // called if the cache misses in order to generate the value to cache
@@ -139,7 +141,7 @@ app.get('/characters/id/:charaId.png', async (req, res) => {
             res.writeHead(200, {
                 'Content-Type': 'image/png',
                 'Content-Length': image.length,
-                'Cache-Control': 'public, max-age=60'
+                'Cache-Control': 'public, max-age=' + config.get('app.cachettl')
             });
 
             res.end(image, 'binary');
@@ -162,9 +164,9 @@ app.get('/characters/id/:charaId.png', async (req, res) => {
     );
 })
 
-app.get('/characters/equipment/id/:charaId.png', async (req, res) => {
+app.get('/characters/equipments/id/:charaId.png', async (req, res) => {
     var cacheKey = `img:eq:${req.params.charaId}`;
-    var ttl = 60; // 4 hours
+    var ttl = config.get('app.cachettl');
 
     diskCache.wrap(cacheKey,
         // called if the cache misses in order to generate the value to cache
@@ -189,7 +191,7 @@ app.get('/characters/equipment/id/:charaId.png', async (req, res) => {
             res.writeHead(200, {
                 'Content-Type': 'image/png',
                 'Content-Length': image.length,
-                'Cache-Control': 'public, max-age=60'
+                'Cache-Control': 'public, max-age=' + config.get('app.cachettl')
             });
 
             res.end(image, 'binary');
@@ -216,8 +218,8 @@ app.get('/characters/id/:charaId', async (req, res) => {
     res.redirect(`/characters/id/${req.params.charaId}.png`);
 })
 
-app.get('/characters/equipment/id/:charaId', async (req, res) => {
-    res.redirect(`/characters/equipment/id/${req.params.charaId}.png`);
+app.get('/characters/equipments/id/:charaId', async (req, res) => {
+    res.redirect(`/characters/equipments/id/${req.params.charaId}.png`);
 })
 
 app.get('/characters/name/:world/:charName.png', async (req, res) => {
@@ -231,7 +233,7 @@ app.get('/characters/name/:world/:charName.png', async (req, res) => {
     res.redirect(`/characters/id/${id}.png`);
 })
 
-app.get('/characters/equipment/name/:world/:charName.png', async (req, res) => {
+app.get('/characters/equipments/name/:world/:charName.png', async (req, res) => {
     var id = await getCharIdByName(req.params.world, req.params.charName);
 
     if (id === undefined) {
@@ -239,7 +241,7 @@ app.get('/characters/equipment/name/:world/:charName.png', async (req, res) => {
         return;
     }
 
-    res.redirect(`/characters/equipment/id/${id}.png`);
+    res.redirect(`/characters/equipments/id/${id}.png`);
 })
 
 
@@ -247,8 +249,8 @@ app.get('/characters/name/:world/:charName', async (req, res) => {
     res.redirect(`/characters/name/${req.params.world}/${req.params.charName}.png`);
 })
 
-app.get('/characters/equipment/name/:world/:charName', async (req, res) => {
-    res.redirect(`/characters/equipment/name/${req.params.world}/${req.params.charName}.png`);
+app.get('/characters/equipments/name/:world/:charName', async (req, res) => {
+    res.redirect(`/characters/equipments/name/${req.params.world}/${req.params.charName}.png`);
 })
 
 app.listen(port, () => {

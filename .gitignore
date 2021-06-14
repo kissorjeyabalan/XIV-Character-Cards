@@ -110,3 +110,4 @@ docs/
 # My additions
 
 package-lock.json
+config/*.json

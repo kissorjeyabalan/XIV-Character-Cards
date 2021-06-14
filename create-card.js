@@ -1,7 +1,7 @@
 const fetch = require("node-fetch");
 const path = require("path");
 const { createCanvas, loadImage, registerFont } = require("canvas");
-const { charData } = require('./character-data');
+const config = require('config');
 
 function absolute(relativePath) {
   return path.join(__dirname, relativePath);
@@ -317,10 +317,10 @@ class CardCreator {
    * @returns {Promise<Buffer>} A promise representating the construction of the card's image data.
    */
   async createCard(charaId, customImage) {
-    const characterInfoUrl = `https://xivapi.com/character/${charaId}?extended=1&data=FC,mimo`;
+    const characterInfoUrl = `https://xivapi.com/character/${charaId}?extended=1&data=FC,mimo&private_key=${config.get('xivapi.token')}`;
     const response = await fetch(characterInfoUrl);
     if (!response.ok) {
-    // Retry once if the request fails
+      // Retry once if the request fails
       response = await fetch(characterInfoUrl);
     }
 
@@ -663,15 +663,14 @@ class CardCreator {
   }
 
   async createEquipmentCard(charaId) {
-    const characterInfoUrl = `https://xivapi.com/character/${charaId}?extended=1`;
-    //const response = await fetch(characterInfoUrl);
-    //if (!response.ok) {
-    // Retry once if the request fails
-    //  response = await fetch(characterInfoUrl);
-   // }
+    const characterInfoUrl = `https://xivapi.com/character/${charaId}?extended=1&private_key=${config.get('xivapi.token')}`;
+    const response = await fetch(characterInfoUrl);
+    if (!response.ok) {
+      // Retry once if the request fails
+      response = await fetch(characterInfoUrl);
+    }
 
-   // const data = await response.json();
-   const data = charData;
+    const data = await response.json();
 
     const canvasSize = this.canvasSize;
     const canvas = createCanvas(canvasSize.width, canvasSize.height);
